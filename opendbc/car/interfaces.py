@@ -263,6 +263,22 @@ class CarInterfaceBase(ABC):
 
     return ret
 
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    """
+    Returns brand-specific events that should be raised during operation.
+    Override in brand-specific interfaces to implement custom event logic.
+    
+    Args:
+      CS: Current CarState
+      CS_prev: Previous CarState
+      CC: Current CarControl
+    
+    Returns:
+      List of event types (from car.OnroadEvent.EventName)
+    """
+    return []
+
 
 class CarStateBase(ABC):
   def __init__(self, CP: structs.CarParams):

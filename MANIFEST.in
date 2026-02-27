@@ -1,3 +1,5 @@
 include opendbc/car/car.capnp
 include opendbc/car/include/c++.capnp
+recursive-include opendbc/dbc *.dbc
 recursive-include opendbc/safety *.h
+recursive-include opendbc/car/torque_data *.json

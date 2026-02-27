@@ -10,7 +10,6 @@ requires-python = ">=3.11,<3.13"  # pycapnp doesn't work with 3.13
 urls = { "homepage" = "https://github.com/commaai/opendbc" }
 
 dependencies = [
-  "scons",
   "numpy",
   "crcmod-plus",
   "tqdm",
@@ -144,6 +143,36 @@ too-many-positional-arguments = "ignore"
 
 [tool.setuptools]
 include-package-data = true
+packages = ["opendbc", "opendbc.can", "opendbc.car", "opendbc.car.body", "opendbc.car.chrysler", "opendbc.car.common", "opendbc.car.debug", "opendbc.car.ford", "opendbc.car.gm", "opendbc.car.honda", "opendbc.car.hyundai", "opendbc.car.mazda", "opendbc.car.mock", "opendbc.car.nissan", "opendbc.car.psa", "opendbc.car.rivian", "opendbc.car.subaru", "opendbc.car.tesla", "opendbc.car.tests", "opendbc.car.torque_data", "opendbc.car.toyota", "opendbc.car.volkswagen", "opendbc.dbc", "opendbc.dbc.generator", "opendbc.safety", "opendbc.safety.modes", "opendbc.safety.tests"]
 
 [tool.setuptools.package-data]
-"opendbc.safety" = ["*.h", "board/*.h", "board/drivers/*.h", "modes/*.h"]
+"opendbc" = ["*.pyi"]
+"opendbc.can" = ["*.pyi"]
+"opendbc.car" = ["*.capnp", "*.pyi"]
+"opendbc.car.body" = ["*.pyi"]
+"opendbc.car.chrysler" = ["*.pyi"]
+"opendbc.car.common" = ["*.pyi"]
+"opendbc.car.debug" = ["*.pyi"]
+"opendbc.car.ford" = ["*.pyi"]
+"opendbc.car.ford.tests" = ["*.pyi"]
+"opendbc.car.gm" = ["*.pyi"]
+"opendbc.car.gm.tests" = ["*.pyi"]
+"opendbc.car.honda" = ["*.pyi"]
+"opendbc.car.honda.tests" = ["*.pyi"]
+"opendbc.car.hyundai" = ["*.pyi"]
+"opendbc.car.hyundai.tests" = ["*.pyi"]
+"opendbc.car.mazda" = ["*.pyi"]
+"opendbc.car.mock" = ["*.pyi"]
+"opendbc.car.nissan" = ["*.pyi"]
+"opendbc.car.psa" = ["*.pyi"]
+"opendbc.car.rivian" = ["*.pyi"]
+"opendbc.car.subaru" = ["*.pyi"]
+"opendbc.car.tesla" = ["*.pyi"]
+"opendbc.car.tests" = ["*.pyi"]
+"opendbc.car.torque_data" = ["*.json", "*.pyi"]
+"opendbc.car.toyota" = ["*.pyi"]
+"opendbc.car.volkswagen" = ["*.pyi"]
+"opendbc.dbc" = ["*.dbc", "generator/*.dbc", "generator/*.py"]
+"opendbc.safety" = ["*.h"]
+"opendbc.safety.modes" = ["*.h"]
+"opendbc.safety.tests" = ["*.h"]

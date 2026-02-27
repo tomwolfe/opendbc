@@ -136,3 +136,23 @@ class CarInterface(CarInterfaceBase):
     # re-enable radar if alpha longitudinal toggled on radar-ACC car
     communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX, uds.MESSAGE_TYPE.NORMAL])
     CarInterface.init(CP, can_recv, can_send, communication_control)
+
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    events = []
+
+    if self.CP.openpilotLongitudinalControl:
+      # TODO: when we check for unexpected disengagement, check gear not S1, S2, S3
+      # Only can leave standstill when planner wants to move
+      if CS.cruiseState.standstill and not CS.brakePressed and (CC.cruiseControl.resume or self.CP.flags & ToyotaFlags.HYBRID.value):
+        events.append("resumeRequired")
+      if CS.vEgo < self.CP.minEnableSpeed:
+        events.append("belowEngageSpeed")
+        if CC.actuators.accel > 0.3:
+          # some margin on the actuator to not false trigger cancellation while stopping
+          events.append("speedTooLow")
+        if CS.vEgo < 0.001:
+          # while in standstill, send a user alert
+          events.append("manualRestart")
+
+    return events

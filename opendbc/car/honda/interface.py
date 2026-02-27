@@ -250,3 +250,27 @@ class CarInterface(CarInterfaceBase):
     communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX,
                                    uds.MESSAGE_TYPE.NORMAL_AND_NETWORK_MANAGEMENT])
     CarInterface.init(CP, can_recv, can_send, communication_control)
+
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    events = []
+
+    if self.CP.pcmCruise and CS.vEgo < self.CP.minEnableSpeed:
+      events.append("belowEngageSpeed")
+
+    if self.CP.pcmCruise:
+      # we engage when pcm is active (rising edge)
+      if CS.cruiseState.enabled and not CS_prev.cruiseState.enabled:
+        events.append("pcmEnable")
+      elif not CS.cruiseState.enabled and (CC.actuators.accel >= 0. or not self.CP.openpilotLongitudinalControl):
+        # it can happen that car cruise disables while comma system is enabled: need to
+        # keep braking if needed or if the speed is very low
+        if CS.vEgo < self.CP.minEnableSpeed + 2.:
+          # non loud alert if cruise disables below 25mph as expected (+ a little margin)
+          events.append("speedTooLow")
+        else:
+          events.append("cruiseDisabled")
+    if self.CP.minEnableSpeed > 0 and CS.vEgo < 0.001:
+      events.append("manualRestart")
+
+    return events

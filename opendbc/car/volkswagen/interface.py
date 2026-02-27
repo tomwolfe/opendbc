@@ -103,3 +103,19 @@ class CarInterface(CarInterfaceBase):
     ret.safetyConfigs = safety_configs
 
     return ret
+
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    events = []
+
+    if self.CP.openpilotLongitudinalControl:
+      if CS.vEgo < self.CP.minEnableSpeed + 0.5:
+        events.append("belowEngageSpeed")
+      if CC.enabled and CS.vEgo < self.CP.minEnableSpeed:
+        events.append("speedTooLow")
+
+    # TODO: this needs to be implemented generically in carState struct
+    # if CC.eps_timer_soft_disable_alert:
+    #   events.append("steerTimeLimit")
+
+    return events

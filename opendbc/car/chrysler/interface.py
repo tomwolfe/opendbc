@@ -14,6 +14,10 @@ class CarInterface(CarInterfaceBase):
 
   DRIVABLE_GEARS = (structs.CarState.GearShifter.low,)
 
+  def __init__(self, CP: structs.CarParams):
+    super().__init__(CP)
+    self.low_speed_alert = False
+
   @staticmethod
   def _get_params(ret: structs.CarParams, candidate, fingerprint, car_fw, alpha_long, is_release, docs) -> structs.CarParams:
     ret.brand = "chrysler"
@@ -79,3 +83,17 @@ class CarInterface(CarInterfaceBase):
     ret.enableBsm = 720 in fingerprint[0]
 
     return ret
+
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    events = []
+
+    # Low speed steer alert hysteresis logic
+    if self.CP.minSteerSpeed > 0. and CS.vEgo < (self.CP.minSteerSpeed + 0.5):
+      self.low_speed_alert = True
+    elif CS.vEgo > (self.CP.minSteerSpeed + 1.):
+      self.low_speed_alert = False
+    if self.low_speed_alert:
+      events.append("belowSteerSpeed")
+
+    return events

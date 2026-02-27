@@ -221,3 +221,17 @@ class CarInterface(CarInterfaceBase):
       ret.dashcamOnly = True  # Needs steerRatio, tireStiffness, and lat accel factor tuning
 
     return ret
+
+  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                          CC: structs.CarControl) -> list:
+    events = []
+
+    # Enabling at a standstill with brake is allowed
+    # TODO: verify 17 Volt can enable for the first time at a stop and allow for all GMs
+    if CS.vEgo < self.CP.minEnableSpeed and not (CS.standstill and CS.brake >= 20 and
+                                                 self.CP.networkLocation == structs.CarParams.NetworkLocation.fwdCamera):
+      events.append("belowEngageSpeed")
+    if CS.cruiseState.standstill:
+      events.append("resumeRequired")
+
+    return events
