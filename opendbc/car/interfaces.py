@@ -104,6 +104,11 @@ class CarInterfaceBase(ABC):
     self.frame = 0
     self.v_ego_cluster_seen = False
 
+    # Event processing state
+    self.steering_unpressed = 0
+    self.no_steer_warning = False
+    self.silent_steer_warning = True
+
     self.CS: CarStateBase = self.CarState(CP)
     self.can_parsers: dict[StrEnum, CANParser] = self.CS.get_can_parsers(CP)
 
@@ -263,19 +268,150 @@ class CarInterfaceBase(ABC):
 
     return ret
 
-  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
-                          CC: structs.CarControl) -> list:
+  def get_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                 CC: structs.CarControl) -> list[str]:
     """
-    Returns brand-specific events that should be raised during operation.
-    Override in brand-specific interfaces to implement custom event logic.
+    Returns all events (common + brand-specific) that should be raised during operation.
     
+    This method combines common vehicle events with brand-specific events.
+    Override _get_brand_events() in brand-specific interfaces to implement
+    custom event logic.
+
     Args:
       CS: Current CarState
       CS_prev: Previous CarState
       CC: Current CarControl
-    
+
     Returns:
-      List of event types (from car.OnroadEvent.EventName)
+      List of event names (strings matching EventName schema enumerants)
+    """
+    events = self._get_common_events(CS, CS_prev, CC)
+    events.extend(self._get_brand_events(CS, CS_prev, CC))
+    return events
+
+  def _get_common_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                         CC: structs.CarControl) -> list[str]:
+    """
+    Returns common events that apply to all car brands.
+    
+    These events are generated from standard CarState fields and apply
+    universally across all supported vehicles.
+    
+    Brand-specific variations can be handled by overriding:
+    - _should_generate_pcm_events()
+    - _should_generate_button_cancel()
+    """
+    events = []
+
+    if CS.doorOpen:
+      events.append("doorOpen")
+    if CS.seatbeltUnlatched:
+      events.append("seatbeltNotLatched")
+    if CS.gearShifter != structs.CarState.GearShifter.drive and CS.gearShifter not in self.DRIVABLE_GEARS:
+      events.append("wrongGear")
+    if CS.gearShifter == structs.CarState.GearShifter.reverse:
+      events.append("reverseGear")
+    if not CS.cruiseState.available:
+      events.append("wrongCarMode")
+    if CS.espDisabled:
+      events.append("espDisabled")
+    if CS.espActive:
+      events.append("espActive")
+    if CS.stockFcw:
+      events.append("stockFcw")
+    if CS.stockAeb:
+      events.append("stockAeb")
+    if CS.stockLkas:
+      events.append("stockLkas")
+    if CS.vEgo > MAX_CTRL_SPEED:
+      events.append("speedTooHigh")
+    if CS.cruiseState.nonAdaptive:
+      events.append("wrongCruiseMode")
+    if CS.brakeHoldActive and self.CP.openpilotLongitudinalControl:
+      events.append("brakeHold")
+    if CS.parkingBrake:
+      events.append("parkBrake")
+    if CS.accFaulted:
+      events.append("accFaulted")
+    if CS.steeringPressed:
+      events.append("steerOverride")
+    if CS.steeringDisengage and not CS_prev.steeringDisengage:
+      events.append("steerDisengage")
+    if CS.brakePressed and CS.standstill:
+      events.append("preEnableStandstill")
+    if CS.gasPressed:
+      events.append("gasPressedOverride")
+    if CS.vehicleSensorsInvalid:
+      events.append("vehicleSensorsInvalid")
+    if CS.invalidLkasSetting:
+      events.append("invalidLkasSetting")
+    if CS.lowSpeedAlert:
+      events.append("belowSteerSpeed")
+    if CS.buttonEnable:
+      events.append("buttonEnable")
+
+    # Handle cancel button presses
+    # Note: Hyundai has special handling - cancel button is also pause/resume on some models
+    if self._should_generate_button_cancel(CS, CC):
+      for b in CS.buttonEvents:
+        if b.type == ButtonType.cancel:
+          events.append("buttonCancel")
+
+    # Handle pcm enable/disable events
+    # Note: Honda handles pcmEnable/pcmDisable in its own _get_brand_events()
+    if self._should_generate_pcm_events():
+      if CS.cruiseState.enabled and not CS_prev.cruiseState.enabled and not CS.blockPcmEnable:
+        events.append("pcmEnable")
+      elif not CS.cruiseState.enabled:
+        events.append("pcmDisable")
+
+    # Handle permanent and temporary steering faults
+    self.steering_unpressed = 0 if CS.steeringPressed else self.steering_unpressed + 1
+    if CS.steerFaultTemporary:
+      if CS.steeringPressed and (not CS_prev.steerFaultTemporary or self.no_steer_warning):
+        self.no_steer_warning = True
+      else:
+        self.no_steer_warning = False
+        if self.silent_steer_warning or CS.standstill or self.steering_unpressed < int(1.5 / DT_CTRL):
+          self.silent_steer_warning = True
+          events.append("steerTempUnavailableSilent")
+        else:
+          events.append("steerTempUnavailable")
+    else:
+      self.no_steer_warning = False
+      self.silent_steer_warning = False
+    if CS.steerFaultPermanent:
+      events.append("steerUnavailable")
+
+    return events
+
+  def _should_generate_pcm_events(self) -> bool:
+    """
+    Returns whether pcmEnable/pcmDisable events should be generated.
+    Override for brands that handle pcm events differently (e.g., Honda).
+    """
+    return self.CP.pcmCruise
+
+  def _should_generate_button_cancel(self, CS: structs.CarState, CC: structs.CarControl) -> bool:
+    """
+    Returns whether buttonCancel events should be generated from cancel button presses.
+    Override for brands with special cancel button handling (e.g., Hyundai).
+    """
+    return True
+
+  def _get_brand_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                        CC: structs.CarControl) -> list[str]:
+    """
+    Returns brand-specific events that should be raised during operation.
+    Override in brand-specific interfaces to implement custom event logic.
+
+    Args:
+      CS: Current CarState
+      CS_prev: Previous CarState
+      CC: Current CarControl
+
+    Returns:
+      List of event names (strings)
     """
     return []
 

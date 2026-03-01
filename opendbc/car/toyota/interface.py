@@ -137,8 +137,8 @@ class CarInterface(CarInterfaceBase):
     communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX, uds.MESSAGE_TYPE.NORMAL])
     CarInterface.init(CP, can_recv, can_send, communication_control)
 
-  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
-                          CC: structs.CarControl) -> list:
+  def _get_brand_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                        CC: structs.CarControl) -> list[str]:
     events = []
 
     if self.CP.openpilotLongitudinalControl:

@@ -251,8 +251,8 @@ class CarInterface(CarInterfaceBase):
                                    uds.MESSAGE_TYPE.NORMAL_AND_NETWORK_MANAGEMENT])
     CarInterface.init(CP, can_recv, can_send, communication_control)
 
-  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
-                          CC: structs.CarControl) -> list:
+  def _get_brand_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                        CC: structs.CarControl) -> list[str]:
     events = []
 
     if self.CP.pcmCruise and CS.vEgo < self.CP.minEnableSpeed:
@@ -274,3 +274,7 @@ class CarInterface(CarInterfaceBase):
       events.append("manualRestart")
 
     return events
+
+  def _should_generate_pcm_events(self) -> bool:
+    # Honda handles pcmEnable/pcmDisable in its own _get_brand_events()
+    return False

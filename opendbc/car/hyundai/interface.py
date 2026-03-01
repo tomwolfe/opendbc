@@ -176,3 +176,8 @@ class CarInterface(CarInterfaceBase):
   def deinit(CP, can_recv, can_send):
     communication_control = bytes([uds.SERVICE_TYPE.COMMUNICATION_CONTROL, 0x80 | uds.CONTROL_TYPE.ENABLE_RX_ENABLE_TX, uds.MESSAGE_TYPE.NORMAL])
     CarInterface.init(CP, can_recv, can_send, communication_control)
+
+  def _should_generate_button_cancel(self, CS: structs.CarState, CC: structs.CarControl) -> bool:
+    # On some Hyundai cars, the cancel button is also the pause/resume button,
+    # so only use it for cancel when NOT running openpilot longitudinal
+    return not self.CP.openpilotLongitudinalControl

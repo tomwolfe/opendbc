@@ -222,8 +222,8 @@ class CarInterface(CarInterfaceBase):
 
     return ret
 
-  def get_standard_events(self, CS: structs.CarState, CS_prev: structs.CarState,
-                          CC: structs.CarControl) -> list:
+  def _get_brand_events(self, CS: structs.CarState, CS_prev: structs.CarState,
+                        CC: structs.CarControl) -> list[str]:
     events = []
 
     # Enabling at a standstill with brake is allowed
