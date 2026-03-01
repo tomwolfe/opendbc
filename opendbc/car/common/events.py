@@ -7,10 +7,13 @@ the respective brand's CarInterface.get_events() method.
 """
 
 from opendbc.car import DT_CTRL, structs
-from opendbc.car.interfaces import MAX_CTRL_SPEED
+from opendbc.car.common.conversions import Conversions as CV
 
 GearShifter = structs.CarState.GearShifter
 ButtonType = structs.CarState.ButtonEvent.Type
+
+V_CRUISE_MAX = 145
+MAX_CTRL_SPEED = (V_CRUISE_MAX + 4) * CV.KPH_TO_MS
 
 
 class CarEventProcessor:

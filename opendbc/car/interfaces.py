@@ -14,6 +14,7 @@ from opendbc.car.can_definitions import CanData, CanRecvCallable, CanSendCallabl
 from opendbc.car.common.basedir import BASEDIR
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.common.simple_kalman import KF1D, get_kalman_gain
+from opendbc.car.common.events import CarEventProcessor
 from opendbc.car.values import PLATFORMS
 from opendbc.can import CANParser
 
@@ -114,6 +115,9 @@ class CarInterfaceBase(ABC):
 
     dbc_names = {bus: cp.dbc_name for bus, cp in self.can_parsers.items()}
     self.CC: CarControllerBase = self.CarController(dbc_names, CP)
+
+    # Event processor for common events
+    self.event_processor = CarEventProcessor(CP)
 
   def apply(self, c: structs.CarControl, now_nanos: int | None = None) -> tuple[structs.CarControl.Actuators, list[CanData]]:
     if now_nanos is None:
@@ -272,7 +276,7 @@ class CarInterfaceBase(ABC):
                  CC: structs.CarControl) -> list[str]:
     """
     Returns all events (common + brand-specific) that should be raised during operation.
-    
+
     This method combines common vehicle events with brand-specific events.
     Override _get_brand_events() in brand-specific interfaces to implement
     custom event logic.
@@ -285,8 +289,10 @@ class CarInterfaceBase(ABC):
     Returns:
       List of event names (strings matching EventName schema enumerants)
     """
-    events = self._get_common_events(CS, CS_prev, CC)
-    events.extend(self._get_brand_events(CS, CS_prev, CC))
+    # Get brand-specific events
+    brand_events = self._get_brand_events(CS, CS_prev, CC)
+    # Use CarEventProcessor for common events (includes brand-specific handling for Honda/Hyundai)
+    events = self.event_processor.update(CS, CS_prev, CC, brand_events)
     return events
 
   def _get_common_events(self, CS: structs.CarState, CS_prev: structs.CarState,

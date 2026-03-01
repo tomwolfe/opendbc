@@ -179,5 +179,5 @@ class CarInterface(CarInterfaceBase):
 
   def _should_generate_button_cancel(self, CS: structs.CarState, CC: structs.CarControl) -> bool:
     # On some Hyundai cars, the cancel button is also the pause/resume button,
-    # so only use it for cancel when NOT running openpilot longitudinal
-    return not self.CP.openpilotLongitudinalControl
+    # so only use it for cancel when running openpilot longitudinal
+    return self.CP.openpilotLongitudinalControl
