@@ -143,6 +143,19 @@ typedef struct {
   const float wheelbase;
 } AngleSteeringParams;
 
+// ISO 15622 limits for ACC systems (adapted for E2E longitudinal control)
+// These limits ensure safe and comfortable acceleration/deceleration
+#define ISO15622_MAX_ACCEL_MPS2       250   // 2.5 m/s^2 maximum acceleration (scaled by 100)
+#define ISO15622_MIN_ACCEL_MPS2      -350   // -3.5 m/s^2 minimum acceleration (emergency braking)
+#define ISO15622_CHILL_MAX_ACCEL_MPS2 150   // 1.5 m/s^2 for Chill mode (scaled by 100)
+#define ISO15622_CHILL_MIN_ACCEL_MPS2 -250  // -2.5 m/s^2 for Chill mode (scaled by 100)
+#define ISO15622_MAX_JERK_MPS3        500   // 5.0 m/s^3 maximum jerk (scaled by 100)
+#define ISO15622_CHILL_MAX_JERK_MPS3  300   // 3.0 m/s^3 for Chill mode (scaled by 100)
+
+// E2E confidence-based limits
+#define E2E_LOW_CONFIDENCE_MAX_ACCEL_MPS2  100  // 1.0 m/s^2 when model confidence is low
+#define E2E_LOW_CONFIDENCE_MIN_ACCEL_MPS2 -200 // -2.0 m/s^2 when model confidence is low
+
 typedef struct {
   // acceleration cmd limits
   const int max_accel;
