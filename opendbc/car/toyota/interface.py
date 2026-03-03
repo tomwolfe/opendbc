@@ -86,20 +86,23 @@ class CarInterface(CarInterfaceBase):
 
     ret.radarUnavailable = Bus.radar not in DBC[candidate]
 
-    # since we don't yet parse radar on TSS2 radar-based ACC cars, gate longitudinal behind alpha toggle
+    # E2E Phase 1: Make longitudinal control default for all TSS2 cars
+    # Radar ACC cars require alpha_long toggle to disable radar
     if candidate in RADAR_ACC_CAR:
       ret.alphaLongitudinalAvailable = True
+      # Default to E2E longitudinal, user can opt-out via settings
+      ret.openpilotLongitudinalControl = True
 
       if alpha_long:
         ret.flags |= ToyotaFlags.DISABLE_RADAR.value
+    else:
+      # Non-radar TSS2 cars: E2E longitudinal always enabled
+      ret.openpilotLongitudinalControl = candidate in TSS2_CAR
 
     # openpilot longitudinal enabled by default:
-    #  - TSS2 cars with camera sending ACC_CONTROL where we can block it
+    #  - All TSS2 cars (E2E Phase 1)
     # openpilot longitudinal behind alpha long toggle:
-    #  - TSS2 radar ACC cars (disables radar)
-
-    ret.openpilotLongitudinalControl = (candidate in (TSS2_CAR - RADAR_ACC_CAR) or
-                                        bool(ret.flags & ToyotaFlags.DISABLE_RADAR.value))
+    #  - TSS2 radar ACC cars (disables radar when enabled)
 
     ret.autoResumeSng = ret.openpilotLongitudinalControl
 

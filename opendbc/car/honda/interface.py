@@ -49,8 +49,10 @@ class CarInterface(CarInterfaceBase):
       # WARNING: THIS DISABLES AEB!
       # If Bosch radarless, this blocks ACC messages from the camera
       # TODO: get radar disable working on Bosch CANFD
+      
+      # E2E Phase 1: Make longitudinal control default for Bosch (non-CANFD)
       ret.alphaLongitudinalAvailable = candidate not in HONDA_BOSCH_CANFD
-      ret.openpilotLongitudinalControl = alpha_long and (candidate not in HONDA_BOSCH_CANFD)
+      ret.openpilotLongitudinalControl = candidate not in HONDA_BOSCH_CANFD  # Default enabled for supported Bosch
       ret.pcmCruise = not ret.openpilotLongitudinalControl
     else:
       ret.safetyConfigs = [get_safety_config(structs.CarParams.SafetyModel.hondaNidec)]
