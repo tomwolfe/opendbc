@@ -3,8 +3,103 @@
 // ISO 11270
 static const float ISO_LATERAL_ACCEL = 3.0;  // m/s^2
 
+// E2E Policy lateral limits - additional constraints for neural network curvature outputs
+static const float E2E_LATERAL_ACCEL_MAX = 2.5;  // m/s^2 - conservative limit for E2E
+static const float E2E_LATERAL_JERK_MAX = 4.0;   // m/s^3 - jerk limit for comfort
+
 static const float EARTH_G = 9.81;
 static const float AVERAGE_ROAD_ROLL = 0.06;  // ~3.4 degrees, 6% superelevation
+
+// E2E Policy curvature gating - ensures neural network curvature outputs are safe
+// Curvature is in rad/m, convert to lateral acceleration: a_lat = curvature * v^2
+bool e2e_lateral_curvature_checks(float desired_curvature, float v_ego, float prev_curvature, uint32_t dt_us) {
+  bool violation = false;
+  
+  // Only check when controls are allowed
+  if (!controls_allowed) {
+    return desired_curvature != 0;  // Must be zero when controls not allowed
+  }
+  
+  // Ensure minimum speed for calculations to avoid division issues
+  float v = (v_ego > 1.0) ? v_ego : 1.0;
+  
+  // 1. Convert curvature to lateral acceleration and check against ISO 11270
+  float lateral_accel = desired_curvature * v * v;
+  
+  // Account for road roll (superelevation) - worst case adds to lateral accel
+  float lateral_accel_with_roll = lateral_accel + (EARTH_G * AVERAGE_ROAD_ROLL);
+  
+  if (lateral_accel_with_roll > E2E_LATERAL_ACCEL_MAX) {
+    violation = true;
+  }
+  if (lateral_accel_with_roll < -E2E_LATERAL_ACCEL_MAX) {
+    violation = true;
+  }
+  
+  // 2. Curvature rate limit (jerk in lateral acceleration space)
+  // Prevents sudden steering changes that could cause instability
+  if (dt_us > 0 && prev_curvature != 0) {
+    float dt_sec = dt_us / 1000000.0;
+    float curvature_rate = (desired_curvature - prev_curvature) / dt_sec;
+    
+    // Convert curvature rate to lateral jerk: jerk = curvature_rate * v^2
+    float lateral_jerk = curvature_rate * v * v;
+    
+    if (lateral_jerk > E2E_LATERAL_JERK_MAX) {
+      violation = true;
+    }
+    if (lateral_jerk < -E2E_LATERAL_JERK_MAX) {
+      violation = true;
+    }
+  }
+  
+  // 3. Maximum curvature based on speed
+  // At higher speeds, curvature must be lower to maintain safe lateral acceleration
+  static const float MAX_CURVATURE_FACTOR = 0.02;  // rad/m at 1 m/s
+  float max_curvature = MAX_CURVATURE_FACTOR / (v * v);
+  
+  if (desired_curvature > max_curvature || desired_curvature < -max_curvature) {
+    violation = true;
+  }
+  
+  return violation;
+}
+
+// Clip E2E curvature command to safe limits
+// Returns the clipped curvature value
+float e2e_clip_curvature(float desired_curvature, float v_ego, float prev_curvature, uint32_t dt_us) {
+  float curvature_cmd = desired_curvature;
+  
+  // Ensure minimum speed for calculations
+  float v = (v_ego > 1.0) ? v_ego : 1.0;
+  
+  // Apply lateral acceleration limit
+  float max_curvature_accel = E2E_LATERAL_ACCEL_MAX / (v * v);
+  if (curvature_cmd > max_curvature_accel) {
+    curvature_cmd = max_curvature_accel;
+  }
+  if (curvature_cmd < -max_curvature_accel) {
+    curvature_cmd = -max_curvature_accel;
+  }
+  
+  // Apply curvature rate limit (jerk)
+  if (dt_us > 0 && prev_curvature != 0) {
+    float dt_sec = dt_us / 1000000.0;
+    float max_curvature_change = (E2E_LATERAL_JERK_MAX / (v * v)) * dt_sec;
+    
+    float min_curvature = prev_curvature - max_curvature_change;
+    float max_curvature = prev_curvature + max_curvature_change;
+    
+    if (curvature_cmd > max_curvature) {
+      curvature_cmd = max_curvature;
+    }
+    if (curvature_cmd < min_curvature) {
+      curvature_cmd = min_curvature;
+    }
+  }
+  
+  return curvature_cmd;
+}
 
 // check that commanded torque value isn't too far from measured
 static bool dist_to_meas_check(int val, int val_last, struct sample_t *val_meas,
