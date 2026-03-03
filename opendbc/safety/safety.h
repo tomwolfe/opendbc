@@ -67,6 +67,9 @@ struct sample_t torque_driver;     // last 6 driver torques measured
 uint32_t ts_torque_check_last = 0;
 uint32_t ts_steer_req_mismatch_last = 0;  // last timestamp steer req was mismatched with torque
 
+// Phase 4: E2E safety - track previous acceleration for rate limiting
+int vehicle_accel_prev = 0;        // last desired acceleration for jerk/rate limiting, initialized to 0
+
 // state for controls_allowed timeout logic
 bool heartbeat_engaged = false;             // openpilot enabled, passed in heartbeat USB command
 uint32_t heartbeat_engaged_mismatches = 0;  // count of mismatches between heartbeat_engaged and controls_allowed
@@ -436,6 +439,8 @@ int set_safety_hooks(uint16_t mode, uint16_t param) {
   ts_steer_req_mismatch_last = 0;
   valid_steer_req_count = 0;
   invalid_steer_req_count = 0;
+  // Phase 4: E2E safety - reset acceleration tracker on safety mode change
+  vehicle_accel_prev = 0;
 
   // reset samples
   reset_sample(&vehicle_speed);
