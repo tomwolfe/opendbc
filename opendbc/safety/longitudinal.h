@@ -1,5 +1,8 @@
 #include "opendbc/safety/declarations.h"
 
+#ifndef LONGITUDINAL_H
+#define LONGITUDINAL_H
+
 bool get_longitudinal_allowed(void) {
   return controls_allowed && !gas_pressed_prev;
 }
@@ -33,3 +36,5 @@ bool longitudinal_brake_checks(int desired_brake, const LongitudinalLimits limit
   violation |= desired_brake > limits.max_brake;
   return violation;
 }
+
+#endif // LONGITUDINAL_H

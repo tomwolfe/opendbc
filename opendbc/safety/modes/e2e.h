@@ -2,13 +2,13 @@
 
 /**
  * E2E (End-to-End) Safety Mode for openpilot Phase 4
- * 
+ *
  * This safety mode provides E2E-aware limits that:
  * 1. Allow higher torque and braking for vision-based E2E maneuvers
  * 2. Still enforce ISO 15622 lateral acceleration limits (3.0 m/s^2)
  * 3. Prevent "Permanent Fault" from radical vision-based plans
  * 4. Support both torque-based and angle-based steering control
- * 
+ *
  * Key differences from standard modes:
  * - Higher max torque (up to 400 for most brands, vs 270-300 standard)
  * - Higher max brake (up to 4.0 m/s^2, vs 3.5 m/s^2 standard)
@@ -16,9 +16,13 @@
  * - More permissive rate limits for E2E maneuvers
  */
 
+#include <math.h>
 #include "opendbc/safety/declarations.h"
 #include "opendbc/safety/lateral.h"
 #include "opendbc/safety/longitudinal.h"
+
+// Forward declarations (defined in safety.h)
+static void generic_rx_checks(void);
 
 // E2E-specific limits
 // ISO 15622:2018 still applies - max lateral acceleration
@@ -49,8 +53,8 @@ typedef struct {
   uint32_t max_rt_interval;
   int max_torque_error;
   bool dynamic_max_torque;
-  float max_torque_lookup[10];  // speed bins for dynamic torque
-  TorqueSteeringLimitType type;
+  struct lookup_t max_torque_lookup;  // speed bins for dynamic torque
+  SteeringControlType type;
 } E2ETorqueSteeringLimits;
 
 // E2E longitudinal limits structure
@@ -70,7 +74,7 @@ static const E2ETorqueSteeringLimits default_e2e_torque_limits = {
   .max_rt_interval = 250000,  // 250ms
   .max_torque_error = 100,
   .dynamic_max_torque = false,
-  .max_torque_lookup = {0},
+  .max_torque_lookup = {{0}, {0}},
   .type = TorqueDriverLimited,
 };
 
@@ -81,34 +85,6 @@ static const E2ELongitudinalLimits default_e2e_long_limits = {
   .max_brake = E2E_MAX_BRAKE,
   .inactive_accel = 3000,  // 3.0 m/s^2 (positive is accel, so this is inactive)
 };
-
-// E2E lateral acceleration check with roll compensation
-// Ensures ISO 15622 compliance even with higher torque limits
-static bool e2e_lateral_accel_check(int desired_torque, int torque_meas, 
-                                     float roll_angle, const E2ETorqueSteeringLimits limits) {
-  bool violation = false;
-  
-  // Calculate lateral acceleration from torque (simplified model)
-  // In practice, this would use vehicle-specific parameters
-  float lateral_accel_from_torque = (float)desired_torque / 100.0;  // Simplified conversion
-  
-  // Roll compensation: gravity component reduces available lateral accel
-  float roll_compensation = EARTH_G * sinf(roll_angle);
-  
-  // Check against E2E limit (slightly higher than ISO for maneuvers)
-  float total_lateral_accel = lateral_accel_from_torque + roll_compensation;
-  
-  if (fabsf(total_lateral_accel) > E2E_MAX_LAT_ACCEL_WITH_ROLL) {
-    violation = true;
-  }
-  
-  // Always enforce base ISO limit without roll
-  if (fabsf(lateral_accel_from_torque) > E2E_ISO_LATERAL_ACCEL) {
-    violation = true;
-  }
-  
-  return violation;
-}
 
 // E2E steer torque command checks
 // Enhanced version that allows higher limits while maintaining safety
@@ -240,8 +216,9 @@ static void e2e_rx_hook(const CANPacket_t *msg) {
 
 // E2E TX hook - validate outgoing control messages
 static bool e2e_tx_hook(const CANPacket_t *msg) {
+  SAFETY_UNUSED(msg);
   bool violation = false;
-  
+
   // Extract desired torque/accel from message (vehicle-specific)
   int desired_torque = 0;
   int desired_accel = 0;
@@ -259,44 +236,9 @@ static bool e2e_tx_hook(const CANPacket_t *msg) {
   return !violation;
 }
 
-// Set E2E mode parameters (called from userspace)
-static int e2e_set_param(uint16_t param) {
-  e2e_init(param);
-  return 0;
-}
-
-// Get E2E mode status
-static bool e2e_is_enabled(void) {
-  return e2e_mode_enabled;
-}
-
 // E2E safety hooks structure
 const safety_hooks e2e_hooks = {
   .init = e2e_init,
   .rx = e2e_rx_hook,
   .tx = e2e_tx_hook,
-  .set_param = e2e_set_param,
 };
-
-// Helper function to check if E2E radical maneuver would cause fault
-// Returns true if maneuver is safe, false if it would trigger permanent fault
-static bool e2e_maneuver_is_safe(int desired_torque, int desired_accel, float roll_angle) {
-  // Check torque limits
-  if (abs(desired_torque) > e2e_torque_limits.max_torque) {
-    return false;
-  }
-  
-  // Check lateral acceleration (ISO 15622)
-  float lateral_accel = (float)desired_torque / 100.0;
-  float roll_comp = EARTH_G * sinf(roll_angle);
-  if (fabsf(lateral_accel + roll_comp) > E2E_MAX_LAT_ACCEL_WITH_ROLL) {
-    return false;
-  }
-  
-  // Check braking limits
-  if (desired_accel < -e2e_long_limits.max_brake) {
-    return false;
-  }
-  
-  return true;
-}

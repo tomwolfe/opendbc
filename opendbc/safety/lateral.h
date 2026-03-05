@@ -1,5 +1,8 @@
 #include "opendbc/safety/declarations.h"
 
+#ifndef LATERAL_H
+#define LATERAL_H
+
 // ISO 11270
 static const float ISO_LATERAL_ACCEL = 3.0;  // m/s^2
 
@@ -351,3 +354,5 @@ bool steer_angle_cmd_checks_vm(int desired_angle, bool steer_control_enabled, co
 
   return violation;
 }
+
+#endif // LATERAL_H
