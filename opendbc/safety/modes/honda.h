@@ -167,6 +167,7 @@ static bool honda_tx_hook(const CANPacket_t *msg) {
   const LongitudinalLimits HONDA_BOSCH_LONG_LIMITS = {
     .max_accel = 200,   // accel is used for brakes
     .min_accel = -350,
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3: -9.8 m/s^2
 
     .max_gas = 2000,
     .inactive_gas = -30000,
@@ -175,6 +176,7 @@ static bool honda_tx_hook(const CANPacket_t *msg) {
   const LongitudinalLimits HONDA_NIDEC_LONG_LIMITS = {
     .max_gas = 198,  // 0xc6
     .max_brake = 255,
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3
 
     .inactive_speed = 0,
   };

@@ -129,6 +129,7 @@ static bool volkswagen_mqb_tx_hook(const CANPacket_t *msg) {
     .max_accel = 2000,
     .min_accel = -3500,
     .inactive_accel = 3010,  // VW sends one increment above the max range when inactive
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3: -9.8 m/s^2
   };
 
   bool tx = true;

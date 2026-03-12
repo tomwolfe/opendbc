@@ -81,10 +81,44 @@ bool get_honda_fwd_brake(void);
 void set_honda_alt_brake_msg(bool c);
 void set_honda_bosch_long(bool c);
 int get_honda_hw(void);
+
+// E2E Phase 3: Longitudinal safety check wrappers for testing
+typedef struct {
+  int max_accel;
+  int min_accel;
+  int inactive_accel;
+  int emergency_min_accel;
+  int max_gas;
+  int min_gas;
+  int inactive_gas;
+  int max_brake;
+  int max_transmission_rpm;
+  int min_transmission_rpm;
+  int inactive_transmission_rpm;
+  int inactive_speed;
+} TestLongitudinalLimits;
+
+bool longitudinal_accel_checks_wrapper(int desired_accel, TestLongitudinalLimits test_limits);
 """)
 
 class LibSafety:
-  pass
+  def longitudinal_accel_checks(self, desired_accel, limits):
+    """Wrapper for longitudinal_accel_checks that accepts a dict of limits."""
+    test_limits = ffi.new('TestLongitudinalLimits *')
+    test_limits[0].max_accel = limits['max_accel']
+    test_limits[0].min_accel = limits['min_accel']
+    test_limits[0].inactive_accel = limits['inactive_accel']
+    test_limits[0].emergency_min_accel = limits['emergency_min_accel']
+    test_limits[0].max_gas = limits.get('max_gas', 0)
+    test_limits[0].min_gas = limits.get('min_gas', 0)
+    test_limits[0].inactive_gas = limits.get('inactive_gas', 0)
+    test_limits[0].max_brake = limits.get('max_brake', 0)
+    test_limits[0].max_transmission_rpm = limits.get('max_transmission_rpm', 0)
+    test_limits[0].min_transmission_rpm = limits.get('min_transmission_rpm', 0)
+    test_limits[0].inactive_transmission_rpm = limits.get('inactive_transmission_rpm', 0)
+    test_limits[0].inactive_speed = limits.get('inactive_speed', 0)
+    return self.longitudinal_accel_checks_wrapper(desired_accel, test_limits[0])
+
 libsafety: LibSafety = ffi.dlopen(libsafety_fn)
 
 def make_CANPacket(addr: int, bus: int, dat):

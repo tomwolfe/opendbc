@@ -143,11 +143,22 @@ typedef struct {
   const float wheelbase;
 } AngleSteeringParams;
 
+// E2E Phase 3: Emergency braking limit (-1g = -9.8 m/s^2)
+// This is the maximum physically reasonable deceleration for passenger vehicles
+// Prevents E2E model from requesting catastrophic braking forces during AEB
+#define EMERGENCY_MIN_ACCEL -9800  // in mm/s^2 (-9.8 m/s^2)
+
+// Default emergency braking limit for safety modes
+// Safety modes should override this if they have different requirements
+#define DEFAULT_EMERGENCY_MIN_ACCEL EMERGENCY_MIN_ACCEL
+
 typedef struct {
   // acceleration cmd limits
   const int max_accel;
   const int min_accel;
   const int inactive_accel;
+  // E2E Phase 3: Emergency braking limit (more negative than min_accel)
+  const int emergency_min_accel;
 
   // gas & brake cmd limits
   // inactive and min gas are 0 on most safety modes

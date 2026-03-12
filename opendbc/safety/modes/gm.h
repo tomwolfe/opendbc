@@ -167,6 +167,7 @@ static safety_config gm_init(uint16_t param) {
     .min_gas = -650 * GM_GAS_TO_CAN,
     .inactive_gas = -650 * GM_GAS_TO_CAN,
     .max_brake = 400,
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3
   };
 
   static const CanMsg GM_ASCM_TX_MSGS[] = {{0x180, 0, 4, .check_relay = true}, {0x409, 0, 7, .check_relay = false}, {0x40A, 0, 7, .check_relay = false}, {0x2CB, 0, 8, .check_relay = true}, {0x370, 0, 6, .check_relay = false},  // pt bus
@@ -179,6 +180,7 @@ static safety_config gm_init(uint16_t param) {
     .min_gas = -540 * GM_GAS_TO_CAN,
     .inactive_gas = -500 * GM_GAS_TO_CAN,
     .max_brake = 400,
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3
   };
 
   // block PSCMStatus (0x184); forwarded through openpilot to hide an alert from the camera

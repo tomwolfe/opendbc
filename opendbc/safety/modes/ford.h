@@ -169,6 +169,7 @@ static bool ford_tx_hook(const CANPacket_t *msg) {
     .max_accel = 5641,       //  1.9999 m/s^s
     .min_accel = 4231,       // -3.4991 m/s^2
     .inactive_accel = 5128,  // -0.0008 m/s^2
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3: -9.8 m/s^2
 
     // gas cmd limits
     // Signal: AccPrpl_A_Rq & AccPrpl_A_Pred

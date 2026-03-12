@@ -191,6 +191,43 @@ bool get_honda_fwd_brake(void){
   return honda_fwd_brake;
 }
 
+// E2E Phase 3: Longitudinal safety check wrappers for testing
+// These allow Python tests to directly verify acceleration limits
+
+// Wrapper struct to pass limits from Python
+typedef struct {
+  int max_accel;
+  int min_accel;
+  int inactive_accel;
+  int emergency_min_accel;
+  int max_gas;
+  int min_gas;
+  int inactive_gas;
+  int max_brake;
+  int max_transmission_rpm;
+  int min_transmission_rpm;
+  int inactive_transmission_rpm;
+  int inactive_speed;
+} TestLongitudinalLimits;
+
+bool longitudinal_accel_checks_wrapper(int desired_accel, TestLongitudinalLimits test_limits) {
+  LongitudinalLimits limits = {
+    .max_accel = test_limits.max_accel,
+    .min_accel = test_limits.min_accel,
+    .inactive_accel = test_limits.inactive_accel,
+    .emergency_min_accel = test_limits.emergency_min_accel,
+    .max_gas = test_limits.max_gas,
+    .min_gas = test_limits.min_gas,
+    .inactive_gas = test_limits.inactive_gas,
+    .max_brake = test_limits.max_brake,
+    .max_transmission_rpm = test_limits.max_transmission_rpm,
+    .min_transmission_rpm = test_limits.min_transmission_rpm,
+    .inactive_transmission_rpm = test_limits.inactive_transmission_rpm,
+    .inactive_speed = test_limits.inactive_speed,
+  };
+  return longitudinal_accel_checks(desired_accel, limits);
+}
+
 void init_tests(void){
   safety_mode_cnt = 2U;  // avoid ignoring relay_malfunction logic
   alternative_experience = 0;

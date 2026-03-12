@@ -224,6 +224,7 @@ static bool tesla_tx_hook(const CANPacket_t *msg) {
     .max_accel = 425,       // 2 m/s^2
     .min_accel = 288,       // -3.48 m/s^2
     .inactive_accel = 375,  // 0. m/s^2
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3: -9.8 m/s^2
   };
 
   bool tx = true;

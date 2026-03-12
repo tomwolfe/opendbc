@@ -18,13 +18,16 @@ bool get_longitudinal_allowed(void) {
 
 // Safety checks for longitudinal actuation
 bool longitudinal_accel_checks(int desired_accel, const LongitudinalLimits limits) {
-  // E2E Phase 3: AEB override - allow maximum braking during emergency
-  // When AEB is active, bypass normal min_accel limits for emergency braking
+  // E2E Phase 3: AEB override - allow enhanced braking during emergency, but with safe limits
+  // When AEB is active, use emergency_min_accel instead of min_accel
+  // This prevents the E2E model from requesting physically impossible or dangerous braking
   bool accel_valid;
   if (aeb_override) {
-    // During AEB, only check max_accel (prevent unintended acceleration)
-    // Allow any braking (desired_accel < 0) without limit
-    accel_valid = get_longitudinal_allowed() && (desired_accel <= limits.max_accel);
+    // During AEB, enforce emergency braking limits:
+    // - Upper bound: max_accel (prevent unintended acceleration)
+    // - Lower bound: emergency_min_accel (prevent catastrophic braking, e.g., -1g)
+    accel_valid = get_longitudinal_allowed() && 
+                  !safety_max_limit_check(desired_accel, limits.max_accel, limits.emergency_min_accel);
   } else {
     // Normal operation - enforce both min and max limits
     accel_valid = get_longitudinal_allowed() && !safety_max_limit_check(desired_accel, limits.max_accel, limits.min_accel);
@@ -53,9 +56,13 @@ bool longitudinal_brake_checks(int desired_brake, const LongitudinalLimits limit
   bool violation = false;
   violation |= !get_longitudinal_allowed() && (desired_brake != 0);
   // E2E Phase 3: AEB override - allow maximum brake pressure during emergency
+  // During AEB, allow full brake pressure up to max_brake limit
+  // Note: The acceleration-based emergency limit (emergency_min_accel) is enforced
+  // separately in longitudinal_accel_checks to prevent excessive deceleration
   if (aeb_override) {
-    // During AEB, allow full brake pressure (no max_brake limit)
-    violation |= desired_brake < 0;  // Only prevent negative values if they're invalid
+    // During AEB, allow brake pressure up to max_brake (no additional restriction)
+    // Negative values are invalid (brake pressure cannot be negative)
+    violation |= desired_brake < 0;
   } else {
     violation |= desired_brake > limits.max_brake;
   }

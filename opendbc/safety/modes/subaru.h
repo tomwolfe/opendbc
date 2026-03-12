@@ -136,6 +136,7 @@ static bool subaru_tx_hook(const CANPacket_t *msg) {
     .max_gas = 3400,      // approx  2 m/s^2 when maxing cruise_rpm and cruise_throttle
     .inactive_gas = 1818, // this is zero acceleration
     .max_brake = 600,     // approx -3.5 m/s^2
+    .emergency_min_accel = DEFAULT_EMERGENCY_MIN_ACCEL,  // E2E Phase 3: -9.8 m/s^2
 
     .min_transmission_rpm = 0,
     .max_transmission_rpm = 3600,
