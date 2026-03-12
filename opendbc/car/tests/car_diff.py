@@ -123,7 +123,7 @@ def get_changed_platforms(cwd: Path, database: dict[str, Any], interfaces: dict[
 
 
 def download_refs(ref_path: Path, platforms: list[str], segments: dict[str, list[str]]) -> None:
-  base_url = f"https://raw.githubusercontent.com/commaai/ci-artifacts/refs/heads/{DIFF_BUCKET}"
+  base_url = f"https://raw.githubusercontent.com/tomwolfe/ci-artifacts/refs/heads/{DIFF_BUCKET}"
   for platform in tqdm(platforms):
     for seg in segments.get(platform, []):
       filename = f"{platform}_{seg.replace('/', '_')}.zst"
