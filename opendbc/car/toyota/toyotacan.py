@@ -155,6 +155,23 @@ def create_ui_command(packer, steer, chime, left_line, right_line, left_lane_dep
   return packer.make_can_msg("LKAS_HUD", 0, values)
 
 
+# Phase 2 E2E Direct Actuation Commands
+def create_gas_command(packer, gas, frame):
+  values = {
+    "GAS_COMMAND": gas,
+    "GAS_COMMAND2": gas,
+  }
+  return packer.make_can_msg("GAS_COMMAND", 0, values)
+
+
+def create_brake_command(packer, brake_pressure):
+  values = {
+    "BRAKE_PRESSURE": brake_pressure,
+    "BRAKE_PRESSED": 1 if brake_pressure > 0 else 0,
+  }
+  return packer.make_can_msg("BRAKE_MODULE", 0, values)
+
+
 def toyota_checksum(address: int, sig, d: bytearray) -> int:
   s = len(d)
   addr = address

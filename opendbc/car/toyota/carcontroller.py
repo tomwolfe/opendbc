@@ -10,6 +10,7 @@ from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.toyota import toyotacan
 from opendbc.car.toyota.values import CAR, TSS2_CAR, UNSUPPORTED_DSU_CAR, CarControllerParams, ToyotaFlags
 from opendbc.can import CANPacker
+from openpilot.common.params import Params
 
 Ecu = structs.CarParams.Ecu
 LongCtrlState = structs.CarControl.Actuators.LongControlState
@@ -69,6 +70,7 @@ class CarController(CarControllerBase):
     # *** end long control state ***
 
     self.packer = CANPacker(dbc_names[Bus.pt])
+    self.e2e_control = Params().get_bool("EndToEndControl")
 
     self.secoc_lka_message_counter = 0
     self.secoc_lta_message_counter = 0
@@ -249,7 +251,14 @@ class CarController(CarControllerBase):
 
         pcm_accel_cmd = float(np.clip(pcm_accel_cmd, self.params.ACCEL_MIN, self.params.ACCEL_MAX))
 
-        main_accel_cmd = 0. if self.CP.flags & ToyotaFlags.SECOC.value else pcm_accel_cmd
+        if self.e2e_control:
+          # Phase 2 E2E Direct Actuation: Send gas and brake messages bypassing the PI loop
+          can_sends.append(toyotacan.create_gas_command(self.packer, actuators.gas, self.frame))
+          can_sends.append(toyotacan.create_brake_command(self.packer, actuators.brake * 4047.0))
+          main_accel_cmd = 0.
+        else:
+          main_accel_cmd = 0. if self.CP.flags & ToyotaFlags.SECOC.value else pcm_accel_cmd
+
         can_sends.append(toyotacan.create_accel_command(self.packer, main_accel_cmd, pcm_cancel_cmd, self.permit_braking, self.standstill_req, lead,
                                                         CS.acc_type, fcw_alert, self.distance_button))
         if self.CP.flags & ToyotaFlags.SECOC.value:
