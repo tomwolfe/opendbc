@@ -58,6 +58,10 @@ void set_desired_torque_last(int t);
 void set_rt_torque_last(int t);
 void set_desired_angle_last(int t);
 int get_desired_angle_last();
+
+// E2E Phase 3: AEB override functions
+void set_aeb_override(bool override);
+bool get_aeb_override(void);
 void set_angle_meas(int min, int max);
 int get_angle_meas_min(void);
 int get_angle_meas_max(void);
